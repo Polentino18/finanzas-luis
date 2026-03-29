@@ -301,23 +301,39 @@ textarea.form-inp{resize:none}
   </div>
 </div>
 
-<!-- ═══ GASTOS ═══ -->
-<div class="view" id="view-gastos">
+<!-- ═══ MOVIMIENTOS ═══ -->
+<div class="view" id="view-movimientos">
   <div class="view-header fu">
-    <div><div class="vh-title">Gastos</div><div class="vh-sub" id="g-sub">—</div></div>
+    <div><div class="vh-title">Movimientos</div><div class="vh-sub" id="g-sub">—</div></div>
     <div class="badge badge-red" id="g-badge">—</div>
   </div>
-  <div class="month-scroll fu" id="g-months"></div>
-  <!-- Resumen presupuesto MES -->
-  <div class="card fu" id="g-ppto-resumen"></div>
-  <!-- Categorías con semáforo -->
-  <div class="sec-hdr fu"><span class="sec-hdr-title">Por categoría</span></div>
-  <div class="card-flat fu" id="g-cats"></div>
-  <!-- Por empresa -->
-  <div id="g-por-empresa-sec"></div>
-  <!-- Lista -->
-  <div class="sec-hdr fu"><span class="sec-hdr-title">Movimientos</span></div>
-  <div class="card-flat fu" id="g-list"></div>
+  <!-- Pestañas Gastos / Ingresos -->
+  <div class="tabs fu" id="mov-tabs" style="margin-top:4px">
+    <button class="tab-btn at blue" onclick="setMovTab('gastos')">Gastos</button>
+    <button class="tab-btn" onclick="setMovTab('ingresos')">Ingresos</button>
+  </div>
+
+  <!-- PANEL GASTOS -->
+  <div id="mov-panel-gastos">
+    <div class="month-scroll fu" id="g-months"></div>
+    <div class="card fu" id="g-ppto-resumen"></div>
+    <div class="sec-hdr fu"><span class="sec-hdr-title">Por categoría</span></div>
+    <div class="card-flat fu" id="g-cats"></div>
+    <div id="g-por-empresa-sec"></div>
+    <div class="sec-hdr fu"><span class="sec-hdr-title">Lista de gastos</span></div>
+    <div class="card-flat fu" id="g-list"></div>
+  </div>
+
+  <!-- PANEL INGRESOS -->
+  <div id="mov-panel-ingresos" style="display:none">
+    <div class="month-scroll fu" id="i-months"></div>
+    <div class="card-row fu">
+      <div class="card"><div class="kpi-lbl">Recibido</div><div class="kpi-val c-green" id="i-recibido" style="font-size:15px">$0</div></div>
+      <div class="card"><div class="kpi-lbl">Generado</div><div class="kpi-val c-blue" id="i-generado" style="font-size:15px">$0</div></div>
+      <div class="card"><div class="kpi-lbl">Retenido</div><div class="kpi-val c-amber" id="i-retenido" style="font-size:15px">$0</div></div>
+    </div>
+    <div class="card-flat fu" id="i-list"></div>
+  </div>
 </div>
 
 <!-- ═══ REGISTRAR ═══ -->
@@ -447,7 +463,35 @@ textarea.form-inp{resize:none}
   </div>
 </div>
 
-<!-- ═══ NEGOCIOS ═══ -->
+<!-- ═══ AHORRO ═══ -->
+<div class="view" id="view-ahorro">
+  <div class="view-header fu">
+    <div><div class="vh-title">Ahorro</div><div class="vh-sub">Bolsillos</div></div>
+    <button class="btn-sm btn-green" onclick="abrirFormAhorro(null)">+ Nuevo</button>
+  </div>
+  <div class="card-row fu">
+    <div class="card"><div class="kpi-lbl">Total ahorrado</div><div class="kpi-val c-green" id="ah-total" style="font-size:15px">$0</div></div>
+    <div class="card"><div class="kpi-lbl">Meta total</div><div class="kpi-val c-blue" id="ah-meta-t" style="font-size:15px">$0</div></div>
+    <div class="card"><div class="kpi-lbl">Avance</div><div class="kpi-val c-amber" id="ah-pct" style="font-size:15px">0%</div></div>
+  </div>
+  <div id="ah-list"></div>
+</div>
+
+<!-- ═══ PAGOS PROGRAMADOS ═══ -->
+<div class="view" id="view-pagos">
+  <div class="view-header fu">
+    <div><div class="vh-title">Pagos</div><div class="vh-sub">Programados</div></div>
+    <button class="btn-sm btn-blue" onclick="abrirFormPago(null)">+ Nuevo</button>
+  </div>
+  <div class="card-row fu">
+    <div class="card"><div class="kpi-lbl">Este mes</div><div class="kpi-val c-red" id="pp-mes" style="font-size:15px">$0</div></div>
+    <div class="card"><div class="kpi-lbl">Pagados</div><div class="kpi-val c-green" id="pp-pagados" style="font-size:15px">0</div></div>
+    <div class="card"><div class="kpi-lbl">Pendientes</div><div class="kpi-val c-amber" id="pp-pend" style="font-size:15px">0</div></div>
+  </div>
+  <div id="pp-list"></div>
+</div>
+
+
 <div class="view" id="view-negocios">
   <div class="view-header fu">
     <div><div class="vh-title">Negocios</div><div class="vh-sub">Portafolio</div></div>
@@ -498,7 +542,11 @@ textarea.form-inp{resize:none}
   <div class="card-flat fu" id="cfg-estados"></div>
   <div class="sec-hdr fu" style="margin-top:4px"><span class="sec-hdr-title">Tarjetas de crédito</span><span class="sec-hdr-action" onclick="abrirFormTarjeta(null)">+ Nueva</span></div>
   <div class="card-flat fu" id="cfg-tarjetas"></div>
-  <div class="sec-hdr fu" style="margin-top:4px"><span class="sec-hdr-title">Presupuestos mensuales</span></div>
+  <div class="sec-hdr fu" style="margin-top:4px"><span class="sec-hdr-title">Herramientas</span></div>
+  <div class="card-flat fu">
+    <div class="cfg-row" onclick="switchView('ahorro')"><div><div class="cfg-lbl">🐷 Bolsillos de ahorro</div><div class="cfg-val">Gestionar metas de ahorro</div></div><span style="color:var(--text3)">›</span></div>
+    <div class="cfg-row" onclick="switchView('pagos')"><div><div class="cfg-lbl">📅 Pagos programados</div><div class="cfg-val">Recurrentes y recordatorios</div></div><span style="color:var(--text3)">›</span></div>
+  </div>
   <div class="card-flat fu" id="cfg-ppto"></div>
 </div>
 
@@ -506,7 +554,7 @@ textarea.form-inp{resize:none}
 
 <nav class="navbar">
   <button class="nav-item active" onclick="switchView('dashboard')" id="nav-dashboard"><span class="nav-icon">⌂</span><span class="nav-label">Inicio</span></button>
-  <button class="nav-item" onclick="switchView('gastos')" id="nav-gastos"><span class="nav-icon">↓</span><span class="nav-label">Gastos</span></button>
+  <button class="nav-item" onclick="switchView('movimientos')" id="nav-movimientos"><span class="nav-icon">⇅</span><span class="nav-label">Movimientos</span></button>
   <div style="flex:1;position:relative;display:flex;justify-content:center"><div class="nav-plus" id="nav-plus" onclick="switchView('registrar')">+</div></div>
   <button class="nav-item" onclick="switchView('negocios')" id="nav-negocios"><span class="nav-icon">◈</span><span class="nav-label">Negocios</span></button>
   <button class="nav-item" onclick="switchView('metas')" id="nav-metas"><span class="nav-icon">◎</span><span class="nav-label">Metas</span></button>
@@ -698,6 +746,76 @@ textarea.form-inp{resize:none}
   </div>
 </div>
 
+<!-- MODAL AHORRO FORM -->
+<div class="modal-bg" id="modal-ahorro-form">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-ahorro-title">Nuevo bolsillo</div>
+    <div style="padding:14px">
+      <input type="hidden" id="ahorro-edit-id">
+      <div class="form-grp"><label class="form-lbl">Nombre del bolsillo</label><input type="text" class="form-inp" id="ahorro-nombre" placeholder="Ej: Vacaciones, Emergencias"></div>
+      <div class="form-grp"><label class="form-lbl">Meta de ahorro ($)</label><input type="number" class="form-inp" id="ahorro-meta" placeholder="0" inputmode="numeric"></div>
+      <div class="form-grp"><label class="form-lbl">Descripción (opcional)</label><input type="text" class="form-inp" id="ahorro-desc" placeholder="Para qué es este bolsillo"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-green" onclick="guardarAhorro()" style="flex:1">Guardar</button>
+        <button class="btn btn-red" id="ahorro-del-btn" onclick="eliminarAhorro()" style="flex:0 0 48px;padding:13px 0">🗑</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AHORRO MOVIMIENTO -->
+<div class="modal-bg" id="modal-ahorro-mov">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-ahorro-mov-title">Mover dinero</div>
+    <div style="padding:14px">
+      <input type="hidden" id="ahorro-mov-id">
+      <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:10px 13px;margin-bottom:12px;font-size:11px;color:#6EE7B7;line-height:1.5" id="ahorro-mov-info"></div>
+      <div class="form-grp"><label class="form-lbl">Tipo</label>
+        <select class="form-inp" id="ahorro-mov-tipo">
+          <option value="deposito">Depósito (sale de caja → entra a ahorro)</option>
+          <option value="retiro">Retiro (sale de ahorro → entra a caja)</option>
+          <option value="inversion">Usar para inversión (sale de ahorro)</option>
+        </select>
+      </div>
+      <div class="form-grp"><label class="form-lbl">Monto ($)</label><input type="number" class="form-inp" id="ahorro-mov-monto" placeholder="0" inputmode="numeric"></div>
+      <div class="form-grp"><label class="form-lbl">Descripción</label><input type="text" class="form-inp" id="ahorro-mov-desc" placeholder="Ej: Ahorro mensual"></div>
+      <div class="form-grp"><label class="form-lbl">Fecha</label><input type="date" class="form-inp" id="ahorro-mov-fecha"></div>
+      <button class="btn btn-green" onclick="confirmarMovAhorro()">Confirmar movimiento</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PAGO PROGRAMADO FORM -->
+<div class="modal-bg" id="modal-pago-prog-form">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-pago-prog-title">Nuevo pago programado</div>
+    <div style="padding:14px">
+      <input type="hidden" id="pp-edit-id">
+      <div class="form-grp"><label class="form-lbl">Nombre</label><input type="text" class="form-inp" id="pp-nombre" placeholder="Ej: Arriendo, Gimnasio"></div>
+      <div class="form-row" style="gap:8px">
+        <div class="form-grp"><label class="form-lbl">Monto ($)</label><input type="number" class="form-inp" id="pp-monto" placeholder="0" inputmode="numeric"></div>
+        <div class="form-grp"><label class="form-lbl">Día del mes</label><input type="number" class="form-inp" id="pp-dia" placeholder="1-31" min="1" max="31" inputmode="numeric"></div>
+      </div>
+      <div class="form-grp"><label class="form-lbl">Categoría</label><select class="form-inp" id="pp-cat"></select></div>
+      <div class="form-grp"><label class="form-lbl">Asignación</label>
+        <select class="form-inp" id="pp-asig" onchange="toggleNegPP()">
+          <option value="personal">Personal</option>
+          <option value="negocio">Asociado a negocio</option>
+        </select>
+      </div>
+      <div class="form-grp" id="pp-neg-grp" style="display:none"><label class="form-lbl">Negocio</label><select class="form-inp" id="pp-neg"></select></div>
+      <div class="form-grp"><label class="form-lbl">Notas (opcional)</label><input type="text" class="form-inp" id="pp-notas" placeholder="Ej: Pagar antes del día 5"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-blue" onclick="guardarPagoProg()" style="flex:1">Guardar</button>
+        <button class="btn btn-red" id="pp-del-btn" onclick="eliminarPagoProg()" style="flex:0 0 48px;padding:13px 0">🗑</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══ SUPABASE ══
 const SB_URL='https://grfwlztmlvyruoautpfp.supabase.co';
@@ -706,9 +824,9 @@ const sb=supabase.createClient(SB_URL,SB_KEY);
 
 // ══ STATE ══
 var S={
-  cats:[],negs:[],estados:[],metas:[],tarjetas:[],cxc:[],cxp:[],
-  selCat:null,curView:'dashboard',gMes:null,
-  alertCb:null,cobroId:null,pagoId:null,negDetId:null
+  cats:[],negs:[],estados:[],metas:[],tarjetas:[],cxc:[],cxp:[],ahorros:[],pagosProg:[],
+  selCat:null,curView:'dashboard',gMes:null,iMes:null,movTab:'gastos',
+  alertCb:null,cobroId:null,pagoId:null,negDetId:null,ahorroMovId:null
 };
 var MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 var MS=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -742,7 +860,7 @@ function closeAlert(){document.getElementById('alert-bg').classList.remove('show
 function confirmAlert(){if(S.alertCb)S.alertCb();closeAlert()}
 function openM(id){document.getElementById(id).classList.add('show')}
 function closeM(id){document.getElementById(id).classList.remove('show')}
-['modal-cxc-list','modal-cxp-list','modal-cobro','modal-pago-cxp','modal-neg-form','modal-neg-det','modal-meta-form','modal-cat-form','modal-estado-form','modal-tarjeta-form'].forEach(function(id){
+['modal-cxc-list','modal-cxp-list','modal-cobro','modal-pago-cxp','modal-neg-form','modal-neg-det','modal-meta-form','modal-cat-form','modal-estado-form','modal-tarjeta-form','modal-ahorro-form','modal-ahorro-mov','modal-pago-prog-form'].forEach(function(id){
   var el=document.getElementById(id);
   if(el)el.addEventListener('click',function(e){if(e.target===this)closeM(id)});
 });
@@ -757,28 +875,32 @@ function switchView(name){
   document.getElementById('nav-plus').className='nav-plus'+(name==='registrar'?' reg':'');
   S.curView=name;
   if(name==='dashboard')renderDash();
-  else if(name==='gastos')renderGastos();
+  else if(name==='movimientos')renderMovimientos();
   else if(name==='negocios')renderNegocios();
   else if(name==='metas')renderMetas();
   else if(name==='ajustes')renderAjustes();
+  else if(name==='ahorro')renderAhorro();
+  else if(name==='pagos')renderPagosProg();
   else if(name==='registrar')initReg();
 }
 
 // ══ INIT ══
 async function init(){
   try{
-    var [c,n,e,m,cxcR,cxpR,tR]=await Promise.all([
+    var [c,n,e,m,cxcR,cxpR,tR,ahR,ppR]=await Promise.all([
       sb.from('categorias').select('*').eq('activa',true).order('nombre'),
       sb.from('negocios').select('*').eq('activo',true).order('nombre'),
       sb.from('estados_negocio').select('*').order('nombre'),
       sb.from('metas').select('*').eq('activa',true).order('fecha_fin'),
       sb.from('cxc').select('*').order('created_at',{ascending:false}),
       sb.from('cxp').select('*').order('created_at',{ascending:false}),
-      sb.from('tarjetas').select('*').order('nombre')
+      sb.from('tarjetas').select('*').order('nombre'),
+      sb.from('ahorros').select('*').eq('activo',true).order('nombre'),
+      sb.from('pagos_programados').select('*').eq('activo',true).order('dia_del_mes')
     ]);
     S.cats=c.data||[];S.negs=n.data||[];S.estados=e.data||[];
     S.metas=m.data||[];S.cxc=cxcR.data||[];S.cxp=cxpR.data||[];
-    S.tarjetas=tR.data||[];
+    S.tarjetas=tR.data||[];S.ahorros=ahR.data||[];S.pagosProg=ppR.data||[];
     if(S.cats.length)S.selCat=S.cats[0].id;
     document.getElementById('loading').style.display='none';
     document.getElementById('app').style.display='flex';
@@ -854,6 +976,14 @@ async function renderDash(){
   S.cxc.filter(function(c){return(c.monto-(c.cobrado||0))>0&&c.fecha_vencimiento}).forEach(function(c){
     var d=diasHasta(c.fecha_vencimiento);
     if(d<=2)alertas.push({icon:'📋',msg:'CxC vence en '+d+'d: '+c.deudor+' — '+fmt(c.monto-(c.cobrado||0),true),color:'#C4B5FD',click:"abrirCobro('"+c.id+"')"});
+  });
+  // Alertas pagos programados próximos
+  var now2=new Date();
+  S.pagosProg.forEach(function(p){
+    var diasAlVenc=p.dia_del_mes-now2.getDate();
+    if(diasAlVenc>=0&&diasAlVenc<=2){
+      alertas.push({icon:'📅',msg:'Pago programado vence en '+diasAlVenc+'d: '+p.nombre+' — '+fmt(p.monto,true),color:'#FCD34D',click:"switchView('pagos')"});
+    }
   });
   document.getElementById('d-alertas').innerHTML=alertas.map(function(a){
     return'<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:10px;padding:10px 13px;margin:0 12px 8px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="'+a.click+'"><span style="font-size:15px">'+a.icon+'</span><span style="font-size:11px;font-weight:600;color:'+a.color+'">'+a.msg+'</span></div>';
@@ -1518,7 +1648,258 @@ async function guardarTarjeta(){
 }
 function eliminarTarjeta(){var id=document.getElementById('tarjeta-edit-id').value;if(!id)return;showAlert('Eliminar tarjeta','¿Eliminar?',async function(){await sb.from('tarjetas').delete().eq('id',id);S.tarjetas=S.tarjetas.filter(function(t){return t.id!==id});closeM('modal-tarjeta-form');toast('Eliminada','red');renderAjustes();initReg();});}
 
-// ══ HELPERS ══
+// ══ MOVIMIENTOS (Gastos + Ingresos) ══
+var curMovTab='gastos';
+function setMovTab(t){
+  curMovTab=t;
+  document.querySelectorAll('#mov-tabs .tab-btn').forEach(function(b,i){
+    b.className='tab-btn'+((['gastos','ingresos'][i])===t?' at '+(t==='gastos'?'blue':'green'):'');
+  });
+  document.getElementById('mov-panel-gastos').style.display=t==='gastos'?'block':'none';
+  document.getElementById('mov-panel-ingresos').style.display=t==='ingresos'?'block':'none';
+  if(t==='ingresos')renderIngresos();
+}
+function renderMovimientos(){
+  setMovTab(curMovTab);
+  if(curMovTab==='gastos')renderGastos();
+  else renderIngresos();
+}
+
+// ══ INGRESOS ══
+var iMes=null;
+async function renderIngresos(){
+  var res=await sb.from('ingresos').select('fecha').order('fecha',{ascending:false}).limit(300);
+  var rows=res.data||[];
+  var keys=[...new Set(rows.map(function(r){return mkFromFecha(r.fecha)}))].sort(function(a,b){return b.localeCompare(a)});
+  if(!iMes||!keys.includes(iMes))iMes=keys[0]||cmk();
+  renderMonthScroll('i-months',keys,iMes,function(k){iMes=k;renderIngresos()});
+  var p=iMes.split('_');
+  var ini=p[0]+'-'+String(p[1]).padStart(2,'0')+'-01';
+  var fin=p[0]+'-'+String(p[1]).padStart(2,'0')+'-31';
+  var iRes=await sb.from('ingresos').select('*').gte('fecha',ini).lte('fecha',fin).order('fecha',{ascending:false});
+  var I=iRes.data||[];
+  var rec=I.filter(function(x){return x.tipo==='Honorario'||x.tipo==='Utilidad Recibida'||x.tipo==='Cobro CxC'}).reduce(function(s,x){return s+x.monto},0);
+  var gen=I.filter(function(x){return x.tipo==='Utilidad Generada'}).reduce(function(s,x){return s+x.monto},0);
+  document.getElementById('i-recibido').textContent=fmt(rec,true);
+  document.getElementById('i-generado').textContent=fmt(gen,true);
+  document.getElementById('i-retenido').textContent=fmt(Math.max(gen-rec,0),true);
+  var le=document.getElementById('i-list');
+  if(!I.length){le.innerHTML='<div class="empty"><div class="empty-icon">💰</div><div class="empty-text">Sin ingresos este mes</div></div>';return}
+  var emM={Honorario:'🏢','Utilidad Recibida':'💵','Utilidad Generada':'📊','Cobro CxC':'📋',Otro:'💫'};
+  le.innerHTML=I.map(function(i){
+    var ig=i.tipo==='Utilidad Generada';
+    return'<div class="list-item"><div class="li-icon" style="background:'+(ig?'rgba(245,158,11,.1)':'rgba(16,185,129,.1)')+'\">'+(emM[i.tipo]||'💫')+'</div>'+
+    '<div class="li-body"><div class="li-name">'+(i.empresa||i.descripcion||'—')+'</div><div class="li-sub">'+fmtD(i.fecha)+' · '+i.tipo+'</div></div>'+
+    '<div style="display:flex;align-items:center;gap:6px">'+
+    '<div class="li-amt '+(ig?'c-amber':'c-green')+'">'+(ig?'≈':'+')+fmt(i.monto,true)+'</div>'+
+    '<button onclick="askDelIngreso(\''+i.id+'\',\''+i.tipo+'\',\''+i.empresa+'\',\''+i.fecha+'\')" style="background:rgba(239,68,68,.15);border:none;border-radius:6px;padding:3px 7px;color:#F87171;font-size:10px;font-weight:700;cursor:pointer">✕</button>'+
+    '</div></div>';
+  }).join('');
+}
+async function askDelIngreso(id,tipo,empresa,fecha){
+  var msg='¿Eliminar este ingreso?';
+  if(tipo==='Utilidad Generada'||tipo==='Utilidad Recibida')msg='¿Eliminar? También se eliminará el registro de utilidad del negocio para ese mes.';
+  showAlert('Eliminar ingreso',msg,async function(){
+    var ing=await sb.from('ingresos').select('*').eq('id',id).single();
+    await sb.from('ingresos').delete().eq('id',id);
+    if(ing.data&&(ing.data.tipo==='Utilidad Generada'||ing.data.tipo==='Utilidad Recibida')){
+      var d=new Date(ing.data.fecha+'T12:00:00');
+      var mesN=MESES[d.getMonth()];
+      var anioN=d.getFullYear();
+      await sb.from('utilidades').delete().eq('negocio_id',ing.data.negocio_id).eq('mes',mesN).eq('anio',anioN);
+      // Eliminar ingreso par
+      var tipoCompl=ing.data.tipo==='Utilidad Generada'?'Utilidad Recibida':'Utilidad Generada';
+      var fBase=anioN+'-'+String(d.getMonth()+1).padStart(2,'0');
+      await sb.from('ingresos').delete().eq('empresa',ing.data.empresa).eq('tipo',tipoCompl).like('fecha',fBase+'%');
+    }
+    toast('Ingreso eliminado','amber');renderIngresos();renderNegocios();renderDash();
+  });
+}
+
+// ══ AHORRO ══
+async function renderAhorro(){
+  var totSaldo=S.ahorros.reduce(function(s,a){return s+a.saldo_actual},0);
+  var totMeta=S.ahorros.reduce(function(s,a){return s+a.meta},0);
+  var pct=totMeta>0?Math.round(totSaldo/totMeta*100):0;
+  document.getElementById('ah-total').textContent=fmt(totSaldo,true);
+  document.getElementById('ah-meta-t').textContent=fmt(totMeta,true);
+  document.getElementById('ah-pct').textContent=pct+'%';
+  document.getElementById('ah-pct').className='kpi-val '+(pct>=100?'c-green':pct>=50?'c-amber':'c-blue');
+  var el=document.getElementById('ah-list');
+  if(!S.ahorros.length){
+    el.innerHTML='<div class="empty" style="padding:48px"><div class="empty-icon">🐷</div><div class="empty-text">Sin bolsillos de ahorro.<br>Toca + Nuevo para crear.</div></div>';
+    return;
+  }
+  el.innerHTML=S.ahorros.map(function(a){
+    var pctA=a.meta>0?Math.min(Math.round(a.saldo_actual/a.meta*100),100):0;
+    var col=pctA>=100?'#34D399':pctA>=50?'#FBBF24':'#60A5FA';
+    var falta=Math.max(a.meta-a.saldo_actual,0);
+    return'<div class="card fu">'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'+
+    '<div><div style="font-size:14px;font-weight:700">🐷 '+a.nombre+'</div>'+
+    (a.descripcion?'<div style="font-size:10px;color:var(--text3);margin-top:2px">'+a.descripcion+'</div>':'')+
+    '</div>'+
+    '<div style="display:flex;gap:6px">'+
+    '<button onclick="abrirMovAhorro(\''+a.id+'\')" style="background:rgba(16,185,129,.15);border:none;border-radius:8px;padding:5px 10px;color:#34D399;font-size:11px;font-weight:700;cursor:pointer">Mover $</button>'+
+    '<button onclick="abrirFormAhorro(\''+a.id+'\')" style="background:var(--surface2);border:1px solid var(--border2);border-radius:7px;padding:5px 8px;color:var(--text2);font-size:10px;cursor:pointer">✏️</button>'+
+    '</div></div>'+
+    '<div class="card-row" style="margin:0 0 10px;gap:6px">'+
+    '<div class="card" style="margin:0;padding:10px;text-align:center"><div class="kpi-lbl">Saldo</div><div style="font-size:15px;font-weight:700;color:'+col+'">'+fmt(a.saldo_actual,true)+'</div></div>'+
+    '<div class="card" style="margin:0;padding:10px;text-align:center"><div class="kpi-lbl">Meta</div><div style="font-size:15px;font-weight:700;color:var(--text2)">'+fmt(a.meta,true)+'</div></div>'+
+    '<div class="card" style="margin:0;padding:10px;text-align:center"><div class="kpi-lbl">Falta</div><div style="font-size:15px;font-weight:700;color:'+col+'">'+fmt(falta,true)+'</div></div>'+
+    '</div>'+
+    '<div class="prog-row"><span>Avance</span><span style="color:'+col+'">'+pctA+'%</span></div>'+
+    '<div class="prog-track" style="margin-bottom:0"><div class="prog-fill" style="width:'+pctA+'%;background:'+col+'"></div></div>'+
+    '</div>';
+  }).join('');
+}
+function abrirFormAhorro(id){
+  document.getElementById('ahorro-edit-id').value=id||'';
+  document.getElementById('modal-ahorro-title').textContent=id?'Editar bolsillo':'Nuevo bolsillo';
+  document.getElementById('ahorro-del-btn').style.display=id?'block':'none';
+  if(id){var a=S.ahorros.find(function(x){return x.id===id});if(a){document.getElementById('ahorro-nombre').value=a.nombre||'';document.getElementById('ahorro-meta').value=a.meta||'';document.getElementById('ahorro-desc').value=a.descripcion||'';}}
+  else{['ahorro-nombre','ahorro-meta','ahorro-desc'].forEach(function(x){document.getElementById(x).value=''});}
+  openM('modal-ahorro-form');
+}
+async function guardarAhorro(){
+  var id=document.getElementById('ahorro-edit-id').value;
+  var data={nombre:document.getElementById('ahorro-nombre').value.trim(),meta:parseFloat(document.getElementById('ahorro-meta').value)||0,descripcion:document.getElementById('ahorro-desc').value.trim()};
+  if(!data.nombre){toast('Ingresa un nombre','amber');return}
+  if(id)await sb.from('ahorros').update(data).eq('id',id);else await sb.from('ahorros').insert(data);
+  var r=await sb.from('ahorros').select('*').eq('activo',true).order('nombre');S.ahorros=r.data||[];
+  closeM('modal-ahorro-form');toast(id?'Bolsillo actualizado':'Bolsillo creado','green');renderAhorro();
+}
+function eliminarAhorro(){
+  var id=document.getElementById('ahorro-edit-id').value;if(!id)return;
+  showAlert('Eliminar bolsillo','¿Eliminar este bolsillo de ahorro?',async function(){
+    await sb.from('ahorros').update({activo:false}).eq('id',id);
+    S.ahorros=S.ahorros.filter(function(a){return a.id!==id});
+    closeM('modal-ahorro-form');toast('Bolsillo eliminado','red');renderAhorro();
+  });
+}
+function abrirMovAhorro(ahorroId){
+  var a=S.ahorros.find(function(x){return x.id===ahorroId});if(!a)return;
+  S.ahorroMovId=ahorroId;
+  document.getElementById('ahorro-mov-id').value=ahorroId;
+  document.getElementById('modal-ahorro-mov-title').textContent=a.nombre;
+  document.getElementById('ahorro-mov-info').innerHTML='Saldo actual: <strong>'+fmt(a.saldo_actual,true)+'</strong> · Meta: '+fmt(a.meta,true);
+  document.getElementById('ahorro-mov-monto').value='';
+  document.getElementById('ahorro-mov-desc').value='';
+  document.getElementById('ahorro-mov-fecha').value=today();
+  openM('modal-ahorro-mov');
+}
+async function confirmarMovAhorro(){
+  var m=parseFloat(document.getElementById('ahorro-mov-monto').value)||0;
+  if(m<=0){toast('Ingresa un monto','amber');return}
+  var tipo=document.getElementById('ahorro-mov-tipo').value;
+  var desc=document.getElementById('ahorro-mov-desc').value.trim()||tipo;
+  var fecha=document.getElementById('ahorro-mov-fecha').value||today();
+  var ahorroId=document.getElementById('ahorro-mov-id').value;
+  var a=S.ahorros.find(function(x){return x.id===ahorroId});if(!a)return;
+  var nuevoSaldo=tipo==='deposito'?a.saldo_actual+Math.round(m):Math.max(a.saldo_actual-Math.round(m),0);
+  await sb.from('ahorros').update({saldo_actual:nuevoSaldo}).eq('id',ahorroId);
+  await sb.from('movimientos_ahorro').insert({ahorro_id:ahorroId,tipo:tipo,monto:Math.round(m),descripcion:desc,fecha:fecha});
+  if(tipo==='deposito'){
+    // Sale de caja
+    await sb.from('gastos').insert({fecha:fecha,categoria_nombre:'Ahorro',descripcion:'Depósito ahorro: '+a.nombre+' — '+desc,medio_pago:'Transferencia',monto:Math.round(m),tipo_asignacion:'personal',es_tarjeta_credito:false});
+  } else if(tipo==='retiro'){
+    // Entra a caja
+    await sb.from('ingresos').insert({fecha:fecha,empresa:'Ahorro',tipo:'Otro',descripcion:'Retiro ahorro: '+a.nombre+' — '+desc,monto:Math.round(m)});
+  }
+  var r=await sb.from('ahorros').select('*').eq('activo',true).order('nombre');S.ahorros=r.data||[];
+  closeM('modal-ahorro-mov');toast(tipo==='deposito'?'✓ Depósito · Sale de caja':tipo==='retiro'?'✓ Retiro · Entra a caja':'✓ Movimiento registrado','green');
+  renderAhorro();renderDash();
+}
+
+// ══ PAGOS PROGRAMADOS ══
+async function renderPagosProg(){
+  var now=new Date(),mes=now.getMonth()+1,anio=now.getFullYear();
+  var ini=anio+'-'+String(mes).padStart(2,'0')+'-01';
+  var fin=anio+'-'+String(mes).padStart(2,'0')+'-31';
+  // Cargar historial del mes
+  var histRes=await sb.from('pagos_programados_historial').select('*').gte('fecha',ini).lte('fecha',fin);
+  var hist=histRes.data||[];
+  var totalMes=S.pagosProg.reduce(function(s,p){return s+p.monto},0);
+  var pagados=hist.filter(function(h){return h.pagado}).length;
+  var pendientes=S.pagosProg.length-pagados;
+  document.getElementById('pp-mes').textContent=fmt(totalMes,true);
+  document.getElementById('pp-pagados').textContent=pagados;
+  document.getElementById('pp-pend').textContent=pendientes;
+  var el=document.getElementById('pp-list');
+  if(!S.pagosProg.length){
+    el.innerHTML='<div class="empty" style="padding:48px"><div class="empty-icon">📅</div><div class="empty-text">Sin pagos programados.<br>Toca + Nuevo para agregar.</div></div>';
+    return;
+  }
+  el.innerHTML='<div class="sec-hdr fu"><span class="sec-hdr-title">'+MESES[mes-1]+' '+anio+'</span></div><div class="card-flat fu">'+
+  S.pagosProg.map(function(p){
+    var hEntry=hist.find(function(h){return h.pago_id===p.id});
+    var pagado=hEntry&&hEntry.pagado;
+    var diasAlVenc=p.dia_del_mes-now.getDate();
+    var urgente=!pagado&&diasAlVenc<=2&&diasAlVenc>=0;
+    var cat=S.cats.find(function(c){return c.id===p.categoria_id})||{emoji:'📦'};
+    return'<div class="list-item"><div class="li-icon" style="background:'+(pagado?'rgba(16,185,129,.1)':'rgba(245,158,11,.1)')+'">'+cat.emoji+'</div>'+
+    '<div class="li-body"><div class="li-name">'+p.nombre+(urgente?' ⚠️':'')+'</div>'+
+    '<div class="li-sub">Día '+p.dia_del_mes+' · '+(p.tipo_asignacion==='negocio'&&p.negocio_nombre?'🏢 '+p.negocio_nombre:'Personal')+'</div></div>'+
+    '<div style="display:flex;align-items:center;gap:6px">'+
+    '<div style="text-align:right"><div class="li-amt '+(pagado?'c-green':'c-amber')+'">'+fmt(p.monto,true)+'</div><div style="font-size:9px;color:'+(pagado?'#34D399':'#FBBF24')+'">'+(pagado?'✓ Pagado':'Pendiente')+'</div></div>'+
+    (!pagado?'<button onclick="pagarProgramado(\''+p.id+'\',\''+p.nombre+'\','+p.monto+')" style="background:rgba(16,185,129,.15);border:none;border-radius:6px;padding:4px 8px;color:#34D399;font-size:10px;font-weight:700;cursor:pointer">Pagar</button>':'')+
+    '<button onclick="abrirFormPago(\''+p.id+'\')" style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:4px 7px;color:var(--text2);font-size:10px;cursor:pointer">✏️</button>'+
+    '</div></div>';
+  }).join('')+'</div>';
+}
+async function pagarProgramado(pagoId,nombre,monto){
+  var fecha=today();
+  var p=S.pagosProg.find(function(x){return x.id===pagoId});
+  // Registrar gasto real
+  await sb.from('gastos').insert({fecha:fecha,categoria_id:p?p.categoria_id:null,categoria_nombre:p?p.categoria_nombre:'Otros',descripcion:'Pago programado: '+nombre,medio_pago:'Transferencia',monto:Math.round(monto),tipo_asignacion:p?p.tipo_asignacion:'personal',negocio_id:p?p.negocio_id:null,negocio_nombre:p?p.negocio_nombre:null,es_tarjeta_credito:false});
+  // Marcar como pagado en historial
+  var now=new Date(),mes=now.getMonth()+1,anio=now.getFullYear();
+  var ini=anio+'-'+String(mes).padStart(2,'0')+'-01';
+  var fin=anio+'-'+String(mes).padStart(2,'0')+'-31';
+  var existing=await sb.from('pagos_programados_historial').select('id').eq('pago_id',pagoId).gte('fecha',ini).lte('fecha',fin);
+  if(existing.data&&existing.data.length>0){
+    await sb.from('pagos_programados_historial').update({pagado:true,fecha:fecha}).eq('id',existing.data[0].id);
+  } else {
+    await sb.from('pagos_programados_historial').insert({pago_id:pagoId,fecha:fecha,monto:Math.round(monto),pagado:true});
+  }
+  toast('✓ Pago registrado · Sale de caja','green');renderPagosProg();renderDash();
+}
+function abrirFormPago(ppId){
+  document.getElementById('pp-edit-id').value=ppId||'';
+  document.getElementById('modal-pago-prog-title').textContent=ppId?'Editar pago':'Nuevo pago programado';
+  document.getElementById('pp-del-btn').style.display=ppId?'block':'none';
+  document.getElementById('pp-cat').innerHTML=S.cats.map(function(c){return'<option value="'+c.id+'|'+c.nombre+'">'+c.emoji+' '+c.nombre+'</option>'}).join('');
+  document.getElementById('pp-neg').innerHTML=S.negs.map(function(n){return'<option value="'+n.id+'|'+n.nombre+'">'+n.nombre+'</option>'}).join('');
+  if(ppId){
+    var p=S.pagosProg.find(function(x){return x.id===ppId});
+    if(p){document.getElementById('pp-nombre').value=p.nombre||'';document.getElementById('pp-monto').value=p.monto||'';document.getElementById('pp-dia').value=p.dia_del_mes||'';document.getElementById('pp-notas').value=p.notas||'';document.getElementById('pp-asig').value=p.tipo_asignacion||'personal';toggleNegPP();}
+  } else {
+    ['pp-nombre','pp-monto','pp-dia','pp-notas'].forEach(function(id){document.getElementById(id).value=''});
+  }
+  openM('modal-pago-prog-form');
+}
+function toggleNegPP(){document.getElementById('pp-neg-grp').style.display=document.getElementById('pp-asig').value==='negocio'?'block':'none'}
+async function guardarPagoProg(){
+  var id=document.getElementById('pp-edit-id').value;
+  var catVal=document.getElementById('pp-cat').value.split('|');
+  var asig=document.getElementById('pp-asig').value;
+  var negVal=asig==='negocio'?document.getElementById('pp-neg').value.split('|'):['',''];
+  var data={nombre:document.getElementById('pp-nombre').value.trim(),monto:parseFloat(document.getElementById('pp-monto').value)||0,dia_del_mes:parseInt(document.getElementById('pp-dia').value)||1,categoria_id:catVal[0]||null,categoria_nombre:catVal[1]||'Otros',tipo_asignacion:asig,negocio_id:negVal[0]||null,negocio_nombre:negVal[1]||null,notas:document.getElementById('pp-notas').value.trim()};
+  if(!data.nombre){toast('Ingresa un nombre','amber');return}
+  if(id)await sb.from('pagos_programados').update(data).eq('id',id);else await sb.from('pagos_programados').insert(data);
+  var r=await sb.from('pagos_programados').select('*').eq('activo',true).order('dia_del_mes');S.pagosProg=r.data||[];
+  closeM('modal-pago-prog-form');toast(id?'Pago actualizado':'Pago creado','green');renderPagosProg();
+}
+function eliminarPagoProg(){
+  var id=document.getElementById('pp-edit-id').value;if(!id)return;
+  showAlert('Eliminar pago','¿Eliminar este pago programado?',async function(){
+    await sb.from('pagos_programados').update({activo:false}).eq('id',id);
+    S.pagosProg=S.pagosProg.filter(function(p){return p.id!==id});
+    closeM('modal-pago-prog-form');toast('Eliminado','red');renderPagosProg();
+  });
+}
+
+// ══ LINKS A AHORRO Y PAGOS DESDE AJUSTES ══
 function renderMonthScroll(elId,keys,active,fn){
   var el=document.getElementById(elId);if(!el)return;
   el.innerHTML=keys.map(function(k){return'<button class="month-chip'+(k===active?' active':'')+'" onclick="('+fn.toString()+')(\''+k+'\')">'+mkLabel(k)+'</button>'}).join('');
@@ -1530,7 +1911,7 @@ var tx=0;
 document.getElementById('screen').addEventListener('touchstart',function(e){tx=e.touches[0].clientX},{passive:true});
 document.getElementById('screen').addEventListener('touchend',function(e){
   var dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)<80)return;
-  var vs=['dashboard','gastos','registrar','negocios','metas'],i=vs.indexOf(S.curView);
+  var vs=['dashboard','movimientos','registrar','negocios','metas'],i=vs.indexOf(S.curView);
   if(dx<0&&i<vs.length-1)switchView(vs[i+1]);else if(dx>0&&i>0)switchView(vs[i-1]);
 },{passive:true});
 
