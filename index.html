@@ -245,12 +245,15 @@ textarea.form-inp{resize:none}
     <button class="avatar-btn" onclick="switchView('ajustes')" id="avatar-top">L</button>
   </div>
   <!-- KPI Principal -->
-  <div class="card fu" style="padding:18px">
-    <div class="kpi-lbl">Flujo neto del mes</div>
-    <div class="kpi-val" id="d-neto" style="font-size:28px">$0</div>
-    <div class="kpi-sub">Caja recibida − gastos pagados</div>
+  <div class="card fu" style="padding:18px;cursor:pointer" onclick="abrirModalFlujomes()">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+      <div class="kpi-lbl">Caja disponible real</div>
+      <div style="font-size:10px;color:var(--accent);font-weight:600">Ver flujo del mes ›</div>
+    </div>
+    <div class="kpi-val c-green" id="d-caja-real" style="font-size:32px">$0</div>
+    <div style="font-size:10px;color:var(--text2);margin-top:4px">Todo lo recibido − todo lo gastado · Acumulado</div>
     <div style="margin-top:12px">
-      <div class="prog-row"><span>Gastos vs caja</span><span id="d-pct-lbl">0%</span></div>
+      <div class="prog-row"><span>Gastos vs caja este mes</span><span id="d-pct-lbl">0%</span></div>
       <div class="prog-track"><div class="prog-fill" id="d-pct-bar" style="width:0%"></div></div>
     </div>
   </div>
@@ -505,8 +508,13 @@ textarea.form-inp{resize:none}
   <div id="n-cxc-sec"></div>
   <div id="n-cards"></div>
   <!-- Registrar utilidad -->
-  <div class="sec-hdr fu"><span class="sec-hdr-title">Registrar utilidad</span></div>
+  <div class="sec-hdr fu"><span class="sec-hdr-title">Registrar / Editar utilidad</span></div>
   <div class="card fu">
+    <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:10px 13px;margin-bottom:12px;font-size:11px;color:#93C5FD;line-height:1.6">
+      💡 <strong>Cobrado</strong> afecta caja inmediatamente.<br>
+      <strong>Generado</strong> puede quedar vacío y editarse después cuando tengas el cierre real.
+    </div>
+    <input type="hidden" id="n-util-edit-id">
     <div class="form-grp"><label class="form-lbl">Negocio</label><select class="form-inp" id="n-neg-sel"></select></div>
     <div class="form-row" style="gap:8px">
       <div class="form-grp"><label class="form-lbl">Mes</label>
@@ -514,11 +522,18 @@ textarea.form-inp{resize:none}
       </div>
       <div class="form-grp"><label class="form-lbl">Año</label><input type="number" class="form-inp" id="n-anio" value="2025" min="2020" max="2035"></div>
     </div>
-    <div class="form-row" style="gap:8px;margin-bottom:12px">
-      <div class="form-grp"><label class="form-lbl">Util. total negocio</label><input type="number" class="form-inp" id="n-util-total" placeholder="0" inputmode="numeric"></div>
-      <div class="form-grp"><label class="form-lbl">Util. pagada a ti</label><input type="number" class="form-inp" id="n-util-pagada" placeholder="0" inputmode="numeric"></div>
+    <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:10px 12px;margin-bottom:10px">
+      <div class="form-lbl" style="color:#6EE7B7;margin-bottom:6px">💰 Valor cobrado (afecta caja)</div>
+      <input type="number" class="form-inp" id="n-util-pagada" placeholder="Ej: 5.000.000" inputmode="numeric">
     </div>
-    <button class="btn btn-blue" onclick="registrarUtilidad()">Registrar Utilidad</button>
+    <div style="background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.2);border-radius:8px;padding:10px 12px;margin-bottom:12px">
+      <div class="form-lbl" style="color:#93C5FD;margin-bottom:6px">📊 Util. total del negocio (opcional — puede quedar vacío)</div>
+      <input type="number" class="form-inp" id="n-util-total" placeholder="Déjalo vacío si aún no tienes el cierre" inputmode="numeric">
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-blue" onclick="registrarUtilidad()" id="n-util-btn" style="flex:1">Registrar Utilidad</button>
+      <button class="btn" id="n-util-cancel-btn" onclick="cancelarEdicionUtil()" style="display:none;flex:0 0 auto;padding:13px 14px;background:var(--surface2);color:var(--text2)">Cancelar</button>
+    </div>
   </div>
 </div>
 
@@ -816,6 +831,18 @@ textarea.form-inp{resize:none}
   </div>
 </div>
 
+<!-- MODAL FLUJO DEL MES -->
+<div class="modal-bg" id="modal-flujo-mes">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-flujo-title">Flujo del mes</div>
+    <div id="modal-flujo-body" style="padding:14px"></div>
+  </div>
+</div>
+
+<!-- Hidden elements for dashboard logic -->
+<div id="d-neto" style="display:none">$0</div>
+
 <script>
 // ══ SUPABASE ══
 const SB_URL='https://grfwlztmlvyruoautpfp.supabase.co';
@@ -826,7 +853,8 @@ const sb=supabase.createClient(SB_URL,SB_KEY);
 var S={
   cats:[],negs:[],estados:[],metas:[],tarjetas:[],cxc:[],cxp:[],ahorros:[],pagosProg:[],
   selCat:null,curView:'dashboard',gMes:null,iMes:null,movTab:'gastos',
-  alertCb:null,cobroId:null,pagoId:null,negDetId:null,ahorroMovId:null
+  alertCb:null,cobroId:null,pagoId:null,negDetId:null,ahorroMovId:null,
+  flujoDash:{caja:0,gastos:0,inversion:0,neto:0,mes:'',anio:0}
 };
 var MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 var MS=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -860,7 +888,7 @@ function closeAlert(){document.getElementById('alert-bg').classList.remove('show
 function confirmAlert(){if(S.alertCb)S.alertCb();closeAlert()}
 function openM(id){document.getElementById(id).classList.add('show')}
 function closeM(id){document.getElementById(id).classList.remove('show')}
-['modal-cxc-list','modal-cxp-list','modal-cobro','modal-pago-cxp','modal-neg-form','modal-neg-det','modal-meta-form','modal-cat-form','modal-estado-form','modal-tarjeta-form','modal-ahorro-form','modal-ahorro-mov','modal-pago-prog-form'].forEach(function(id){
+['modal-cxc-list','modal-cxp-list','modal-cobro','modal-pago-cxp','modal-neg-form','modal-neg-det','modal-meta-form','modal-cat-form','modal-estado-form','modal-tarjeta-form','modal-ahorro-form','modal-ahorro-mov','modal-pago-prog-form','modal-flujo-mes'].forEach(function(id){
   var el=document.getElementById(id);
   if(el)el.addEventListener('click',function(e){if(e.target===this)closeM(id)});
 });
@@ -918,6 +946,7 @@ async function renderDash(){
   var fin=anio+'-'+String(mes).padStart(2,'0')+'-31';
   document.getElementById('dash-date').textContent=MESES[mes-1]+' '+anio;
 
+  // Datos del mes actual
   var [iR,gR,invR]=await Promise.all([
     sb.from('ingresos').select('tipo,monto,fecha').gte('fecha',ini).lte('fecha',fin),
     sb.from('gastos').select('monto,fecha,categoria_nombre,categoria_id').gte('fecha',ini).lte('fecha',fin),
@@ -930,6 +959,20 @@ async function renderDash(){
   var neto=caja-gastos;
   var pct=caja>0?Math.round(gastos/caja*100):0;
 
+  // Guardar para modal
+  S.flujoDash={caja:caja,gastos:gastos,inversion:inversion,neto:neto,mes:MESES[mes-1],anio:anio};
+
+  // Saldo acumulado real = TODOS los ingresos recibidos - TODOS los gastos (desde el inicio)
+  var [iAllR,gAllR]=await Promise.all([
+    sb.from('ingresos').select('tipo,monto'),
+    sb.from('gastos').select('monto')
+  ]);
+  var cajaTotalHistorica=(iAllR.data||[]).filter(function(x){return x.tipo==='Honorario'||x.tipo==='Utilidad Recibida'||x.tipo==='Cobro CxC'}).reduce(function(s,x){return s+x.monto},0);
+  var gastosTotalHistorico=(gAllR.data||[]).reduce(function(s,x){return s+x.monto},0);
+  var saldoReal=cajaTotalHistorica-gastosTotalHistorico;
+
+  document.getElementById('d-caja-real').textContent=fmt(saldoReal,true);
+  document.getElementById('d-caja-real').className='kpi-val '+(saldoReal>=0?'c-green':'c-red');
   document.getElementById('d-neto').textContent=fmt(neto,true);
   document.getElementById('d-neto').className='kpi-val '+(neto>=0?'c-green':'c-red');
   document.getElementById('d-caja').textContent=fmt(caja,true);
@@ -1007,6 +1050,30 @@ async function renderDash(){
   var mx=Math.max.apply(null,cd.map(function(d){return Math.max(d.c,d.g)}).concat([1]));
   document.getElementById('d-chart').innerHTML=cd.map(function(d){return'<div style="flex:1;display:flex;align-items:flex-end;gap:2px;height:56px"><div style="flex:1;border-radius:2px 2px 0 0;height:'+Math.round(d.c/mx*100)+'%;background:#60A5FA;opacity:.85;min-height:2px"></div><div style="flex:1;border-radius:2px 2px 0 0;height:'+Math.round(d.g/mx*100)+'%;background:#F87171;opacity:.8;min-height:2px"></div></div>'}).join('');
   document.getElementById('d-chart-labels').innerHTML=cd.map(function(d){return'<div style="flex:1;text-align:center;font-size:8px;color:var(--text3);font-weight:600">'+d.lbl+'</div>'}).join('');
+}
+
+function abrirModalFlujomes(){
+  var f=S.flujoDash;
+  document.getElementById('modal-flujo-title').textContent='Flujo · '+f.mes+' '+f.anio;
+  var col=f.neto>=0?'#34D399':'#F87171';
+  var pct=f.caja>0?Math.round(f.gastos/f.caja*100):0;
+  var body='';
+  body+='<div style="text-align:center;padding:16px 0 20px;border-bottom:1px solid var(--border);margin-bottom:16px">';
+  body+='<div style="font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Flujo neto del mes</div>';
+  body+='<div style="font-size:36px;font-weight:700;color:'+col+'">'+fmt(f.neto,true)+'</div>';
+  body+='<div style="font-size:11px;color:var(--text2);margin-top:4px">'+(f.neto>=0?'✅ Mes positivo':'⚠️ Mes negativo')+'</div>';
+  body+='</div>';
+  body+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">';
+  body+='<div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:12px;text-align:center"><div style="font-size:9px;color:#6EE7B7;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Caja recibida</div><div style="font-size:18px;font-weight:700;color:#34D399">'+fmt(f.caja,true)+'</div></div>';
+  body+='<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:12px;text-align:center"><div style="font-size:9px;color:#FCA5A5;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Gastos pagados</div><div style="font-size:18px;font-weight:700;color:#F87171">'+fmt(f.gastos,true)+'</div></div>';
+  if(f.inversion>0){
+    body+='<div style="background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:10px;padding:12px;text-align:center;grid-column:span 2"><div style="font-size:9px;color:#C4B5FD;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Inversiones del mes</div><div style="font-size:18px;font-weight:700;color:#C4B5FD">'+fmt(f.inversion,true)+'</div></div>';
+  }
+  body+='</div>';
+  body+='<div style="margin-bottom:6px"><div class="prog-row"><span>Gastos como % de caja</span><span style="color:'+(pct>=100?'#F87171':pct>=70?'#FBBF24':'#34D399')+'">'+pct+'%</span></div><div class="prog-track"><div class="prog-fill" style="width:'+Math.min(pct,100)+'%;background:'+(pct>=100?'#F87171':pct>=70?'#FBBF24':'#34D399')+'"></div></div></div>';
+  body+='<button class="btn btn-blue" onclick="closeM(\'modal-flujo-mes\');switchView(\'movimientos\')" style="margin-top:8px">Ver movimientos del mes</button>';
+  document.getElementById('modal-flujo-body').innerHTML=body;
+  openM('modal-flujo-mes');
 }
 
 async function renderMetasDash(cAnio,gAnio,cajaMes,gastosMes){
@@ -1210,8 +1277,12 @@ async function showNegDet(negId){
     body+='<div style="overflow-x:auto;margin-bottom:14px"><table class="mes-table"><thead><tr><th>Mes</th><th>Generado</th><th>Cobrado</th><th>Pend.</th><th></th></tr></thead><tbody>';
     utils.sort(function(a,b){return(b.anio*12+MESES.indexOf(b.mes))-(a.anio*12+MESES.indexOf(a.mes))}).forEach(function(u){
       var ret=u.utilidad_generada-u.utilidad_pagada;
-      body+='<tr><td>'+u.mes.substr(0,3)+' '+u.anio+'</td><td class="c-blue">'+fmt(u.utilidad_generada,true)+'</td><td class="c-green">'+fmt(u.utilidad_pagada,true)+'</td><td class="'+(ret>0?'c-amber':'c-green')+'">'+fmt(ret,true)+'</td>';
-      body+='<td><button onclick="askDelUtil(\''+u.id+'\')" style="background:rgba(239,68,68,.15);border:none;border-radius:5px;padding:2px 6px;color:#F87171;font-size:9px;cursor:pointer">✕</button></td></tr>';
+      var sinGen=!u.utilidad_generada||u.utilidad_generada===0;
+      body+='<tr><td>'+u.mes.substr(0,3)+' '+u.anio+(sinGen?' <span style="color:#F59E0B;font-size:9px">⏳</span>':'')+'</td><td class="'+(sinGen?'c-amber':'c-blue')+'">'+(sinGen?'Pendiente':fmt(u.utilidad_generada,true))+'</td><td class="c-green">'+fmt(u.utilidad_pagada,true)+'</td><td class="'+(ret>0?'c-amber':'c-green')+'">'+fmt(ret,true)+'</td>';
+      body+='<td style="display:flex;gap:3px">';
+      body+='<button onclick="editarUtilidad('+JSON.stringify(u).replace(/"/g,"'")+',\''+n.nombre+'\')" style="background:rgba(245,158,11,.15);border:none;border-radius:5px;padding:2px 6px;color:#FBBF24;font-size:9px;cursor:pointer" title="Editar generado">✏️</button>';
+      body+='<button onclick="askDelUtil(\''+u.id+'\')" style="background:rgba(239,68,68,.15);border:none;border-radius:5px;padding:2px 6px;color:#F87171;font-size:9px;cursor:pointer">✕</button>';
+      body+='</td></tr>';
     });
     var totRet=totG-totP;
     body+='<tr style="border-top:1px solid rgba(255,255,255,.15)"><td style="font-weight:700">Total</td><td class="c-blue" style="font-weight:700">'+fmt(totG,true)+'</td><td class="c-green" style="font-weight:700">'+fmt(totP,true)+'</td><td class="c-amber" style="font-weight:700">'+fmt(totRet,true)+'</td><td></td></tr>';
@@ -1471,21 +1542,85 @@ async function registrarCxC(){
 
 // ══ REGISTRAR UTILIDAD ══
 async function registrarUtilidad(){
+  var editId=document.getElementById('n-util-edit-id').value;
   var negId=document.getElementById('n-neg-sel').value;
   var neg=S.negs.find(function(n){return n.id===negId});
   if(!neg){toast('Selecciona un negocio','amber');return}
   var mes=document.getElementById('n-mes').value;
   var anio=parseInt(document.getElementById('n-anio').value)||2025;
-  var tot=parseFloat(document.getElementById('n-util-total').value)||0;
+  var tot=parseFloat(document.getElementById('n-util-total').value)||0; // puede ser 0/vacío
   var pag=parseFloat(document.getElementById('n-util-pagada').value)||0;
   if(tot<=0&&pag<=0){toast('Ingresa al menos un valor','amber');return}
-  var gen=Math.round(tot*neg.porcentaje);
+  var gen=tot>0?Math.round(tot*neg.porcentaje):0;
   var mn=String(MESES.indexOf(mes)+1).padStart(2,'0');
-  await sb.from('utilidades').insert({negocio_id:neg.id,negocio_nombre:neg.nombre,mes:mes,anio:anio,utilidad_total_negocio:tot,porcentaje_participacion:neg.porcentaje,utilidad_generada:gen,utilidad_pagada:Math.round(pag)});
-  if(gen>0)await sb.from('ingresos').insert({fecha:anio+'-'+mn+'-28',empresa:neg.nombre,negocio_id:neg.id,tipo:'Utilidad Generada',descripcion:'Utilidad generada '+mes+' '+anio,monto:gen});
-  if(pag>0)await sb.from('ingresos').insert({fecha:anio+'-'+mn+'-05',empresa:neg.nombre,negocio_id:neg.id,tipo:'Utilidad Recibida',descripcion:'Utilidad recibida '+mes+' '+anio,monto:Math.round(pag)});
-  document.getElementById('n-util-total').value='';document.getElementById('n-util-pagada').value='';
-  toast('✓ Utilidad registrada','green');renderNegocios();renderDash();
+
+  if(editId){
+    // ── EDITAR: solo actualiza utilidad_generada, NO toca el cobro ni la caja
+    await sb.from('utilidades').update({
+      utilidad_total_negocio:tot,
+      utilidad_generada:gen
+    }).eq('id',editId);
+    // Actualizar el ingreso de Utilidad Generada si existe, o crearlo si no existía
+    if(gen>0){
+      var fBase=anio+'-'+mn;
+      var existeGen=await sb.from('ingresos').select('id').eq('negocio_id',neg.id).eq('tipo','Utilidad Generada').like('fecha',fBase+'%');
+      if(existeGen.data&&existeGen.data.length>0){
+        await sb.from('ingresos').update({monto:gen,descripcion:'Utilidad generada '+mes+' '+anio}).eq('id',existeGen.data[0].id);
+      } else {
+        await sb.from('ingresos').insert({fecha:anio+'-'+mn+'-28',empresa:neg.nombre,negocio_id:neg.id,tipo:'Utilidad Generada',descripcion:'Utilidad generada '+mes+' '+anio,monto:gen});
+      }
+    }
+    toast('✓ Utilidad generada actualizada · Caja sin cambios','green');
+    cancelarEdicionUtil();
+  } else {
+    // ── NUEVO REGISTRO
+    await sb.from('utilidades').insert({
+      negocio_id:neg.id,negocio_nombre:neg.nombre,mes:mes,anio:anio,
+      utilidad_total_negocio:tot,porcentaje_participacion:neg.porcentaje,
+      utilidad_generada:gen,utilidad_pagada:Math.round(pag)
+    });
+    // Cobro: afecta caja (siempre que haya cobro)
+    if(pag>0){
+      await sb.from('ingresos').insert({fecha:anio+'-'+mn+'-05',empresa:neg.nombre,negocio_id:neg.id,tipo:'Utilidad Recibida',descripcion:'Utilidad recibida '+mes+' '+anio,monto:Math.round(pag)});
+    }
+    // Generado: solo contable, no afecta caja
+    if(gen>0){
+      await sb.from('ingresos').insert({fecha:anio+'-'+mn+'-28',empresa:neg.nombre,negocio_id:neg.id,tipo:'Utilidad Generada',descripcion:'Utilidad generada '+mes+' '+anio,monto:gen});
+    }
+    toast('✓ Utilidad registrada','green');
+  }
+  document.getElementById('n-util-total').value='';
+  document.getElementById('n-util-pagada').value='';
+  renderNegocios();renderDash();
+}
+
+function editarUtilidad(u,negNombre){
+  // Pre-llenar formulario con datos existentes para editar solo el generado
+  var neg=S.negs.find(function(n){return n.nombre===negNombre||n.id===u.negocio_id});
+  if(!neg)return;
+  document.getElementById('n-util-edit-id').value=u.id;
+  document.getElementById('n-neg-sel').value=neg.id;
+  document.getElementById('n-mes').value=u.mes;
+  document.getElementById('n-anio').value=u.anio;
+  document.getElementById('n-util-total').value=u.utilidad_total_negocio||'';
+  document.getElementById('n-util-pagada').value=u.utilidad_pagada||'';
+  document.getElementById('n-util-btn').textContent='Actualizar Utilidad Generada';
+  document.getElementById('n-util-btn').className='btn btn-amber';
+  document.getElementById('n-util-cancel-btn').style.display='block';
+  // Scroll al formulario
+  var card=document.getElementById('n-neg-sel').closest('.card');
+  if(card)card.scrollIntoView({behavior:'smooth',block:'center'});
+  closeM('modal-neg-det');
+  toast('Editando utilidad de '+u.mes+' '+u.anio+' — solo cambia el generado','amber');
+}
+
+function cancelarEdicionUtil(){
+  document.getElementById('n-util-edit-id').value='';
+  document.getElementById('n-util-total').value='';
+  document.getElementById('n-util-pagada').value='';
+  document.getElementById('n-util-btn').textContent='Registrar Utilidad';
+  document.getElementById('n-util-btn').className='btn btn-blue';
+  document.getElementById('n-util-cancel-btn').style.display='none';
 }
 
 // ══ COBRO RÁPIDO CXC ══
@@ -1540,7 +1675,7 @@ function abrirModalCxC(){
   var total=S.cxc.reduce(function(s,c){return s+(c.monto-(c.cobrado||0))},0);
   if(!S.cxc.length){body.innerHTML='<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Sin cuentas por cobrar</div></div>';openM('modal-cxc-list');return}
   body.innerHTML='<div style="text-align:center;margin-bottom:16px"><div style="font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase">Total pendiente</div><div style="font-size:24px;font-weight:700;color:#C4B5FD">'+fmt(total,true)+'</div></div>'+
-  S.cxc.map(function(c){var pend=c.monto-(c.cobrado||0),sl=pend===0;return'<div class="cxc-item" onclick="'+(sl?'':'closeM(\'modal-cxc-list\');abrirCobro(\''+c.id+'\')')+'"><div class="li-icon" style="background:'+(sl?'rgba(16,185,129,.1)':'rgba(139,92,246,.1)');+'">'+( sl?'✅':'📋')+'</div><div class="li-body"><div class="li-name">'+c.deudor+'</div><div class="li-sub">'+(c.concepto||'')+' · '+fmtD(c.fecha)+'</div></div><div style="text-align:right"><div style="font-size:13px;font-weight:700;color:'+(sl?'#34D399':'#C4B5FD')+'">'+fmt(pend,true)+'</div><div style="font-size:10px;color:var(--text3)'+(sl?'':';cursor:pointer')+'">'+( sl?'Saldado':'Toca para cobrar')+'</div></div></div>'}).join('');
+  S.cxc.map(function(c){var pend=c.monto-(c.cobrado||0),sl=pend===0;return'<div class="cxc-item" onclick="'+(sl?'':'closeM(\'modal-cxc-list\');abrirCobro(\''+c.id+'\')')+'"><div class="li-icon" style="background:'+(sl?'rgba(16,185,129,.1)':'rgba(139,92,246,.1)')+'">'+( sl?'✅':'📋')+'</div><div class="li-body"><div class="li-name">'+c.deudor+'</div><div class="li-sub">'+(c.concepto||'')+' · '+fmtD(c.fecha)+'</div></div><div style="text-align:right"><div style="font-size:13px;font-weight:700;color:'+(sl?'#34D399':'#C4B5FD')+'">'+fmt(pend,true)+'</div><div style="font-size:10px;color:var(--text3)'+(sl?'':';cursor:pointer')+'">'+( sl?'Saldado':'Toca para cobrar')+'</div></div></div>'}).join('');
   openM('modal-cxc-list');
 }
 function abrirModalCxP(){
