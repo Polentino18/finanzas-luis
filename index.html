@@ -498,9 +498,9 @@ textarea.form-inp{resize:none}
     <button class="btn-sm btn-blue" onclick="abrirFormNegocio(null)">+ Nuevo</button>
   </div>
   <div class="card-row fu">
-    <div class="card"><div class="kpi-lbl">Generado</div><div class="kpi-val c-blue" id="n-gen" style="font-size:14px">$0</div></div>
-    <div class="card"><div class="kpi-lbl">Invertido</div><div class="kpi-val c-purple" id="n-inv-tot" style="font-size:14px">$0</div></div>
-    <div class="card"><div class="kpi-lbl">Saldo pend.</div><div class="kpi-val c-amber" id="n-saldo-pend" style="font-size:14px">$0</div></div>
+    <div class="card"><div class="kpi-lbl">Generado total</div><div class="kpi-val c-blue" id="n-gen" style="font-size:14px">$0</div></div>
+    <div class="card"><div class="kpi-lbl">Cobrado total</div><div class="kpi-val c-green" id="n-inv-tot" style="font-size:14px">$0</div></div>
+    <div class="card"><div class="kpi-lbl">Pend. cobrar</div><div class="kpi-val c-amber" id="n-saldo-pend" style="font-size:14px">$0</div></div>
   </div>
   <div id="n-cxc-sec"></div>
   <div id="n-cards"></div>
@@ -1120,13 +1120,12 @@ async function renderNegocios(){
     var nu=utils.filter(function(u){return u.negocio_id===n.id});
     var g=nu.reduce(function(s,u){return s+u.utilidad_generada},0);
     var r=nu.reduce(function(s,u){return s+u.utilidad_pagada},0);
+    // CORRECTO: saldo pendiente = utilidad generada - cobrada (no la inversión)
+    var saldoPendCobrar=Math.max(g-r,0);
     var inv=invs.filter(function(i){return i.negocio_id===n.id}).reduce(function(s,i){return s+i.monto},0)+n.inversion_inicial;
-    var retornos=r;
-    var saldo=Math.max(inv-retornos,0);
-    tg+=g;tr+=r;tinv+=inv;tPend+=saldo;
+    tg+=g;tr+=r;tinv+=inv;tPend+=saldoPendCobrar;
     var cxcP=S.cxc.filter(function(c){return c.negocio_id===n.id&&(c.monto-(c.cobrado||0))>0}).reduce(function(s,c){return s+(c.monto-(c.cobrado||0))},0);
     var est=S.estados.find(function(e){return e.nombre===n.estado})||{color:'#64748B'};
-    var roi=inv>0?((g/inv)*100).toFixed(1):0;
     var cxcBadge=cxcP>0?'<div style="margin-top:8px;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.25);border-radius:8px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="event.stopPropagation();abrirCobroNeg(\''+n.id+'\')"><span style="font-size:11px;color:#C4B5FD;font-weight:700">📋 CxC pendiente · cobrar</span><span style="font-size:13px;font-weight:700;color:#C4B5FD">'+fmt(cxcP,true)+'</span></div>':'';
     return'<div class="neg-card fu" onclick="showNegDet(\''+n.id+'\')">'+
     '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
@@ -1135,17 +1134,17 @@ async function renderNegocios(){
     '<span style="background:'+est.color+'22;color:'+est.color+';border:1px solid '+est.color+'44;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700">'+n.estado+'</span>'+
     '<button onclick="event.stopPropagation();abrirFormNegocio(\''+n.id+'\')" style="background:var(--surface2);border:1px solid var(--border2);border-radius:7px;padding:3px 7px;color:var(--text2);font-size:10px;cursor:pointer">✏️</button>'+
     '</div></div>'+
+    // Vista resumida: Generado, Cobrado, Saldo pend. por cobrar (SIN invertido)
     '<div class="neg-metrics">'+
     '<div class="neg-m"><div class="neg-m-val c-blue">'+fmt(g,true)+'</div><div class="neg-m-lbl">Generado</div></div>'+
-    '<div class="neg-m"><div class="neg-m-val c-green">'+fmt(r,true)+'</div><div class="neg-m-lbl">Recibido</div></div>'+
-    '<div class="neg-m"><div class="neg-m-val c-purple">'+fmt(inv,true)+'</div><div class="neg-m-lbl">Invertido</div></div>'+
-    '<div class="neg-m"><div class="neg-m-val c-amber">'+fmt(saldo,true)+'</div><div class="neg-m-lbl">Saldo pend.</div></div>'+
-    '<div class="neg-m"><div class="neg-m-val '+(parseFloat(roi)>0?'c-green':'c-red')+'">'+roi+'%</div><div class="neg-m-lbl">ROI</div></div>'+
+    '<div class="neg-m"><div class="neg-m-val c-green">'+fmt(r,true)+'</div><div class="neg-m-lbl">Cobrado</div></div>'+
+    '<div class="neg-m"><div class="neg-m-val c-amber">'+fmt(saldoPendCobrar,true)+'</div><div class="neg-m-lbl">Pend. cobrar</div></div>'+
     '</div>'+cxcBadge+'</div>';
   }).join('')||'<div class="empty" style="padding:32px"><div class="empty-icon">🏢</div><div class="empty-text">Sin negocios.<br>Toca + Nuevo para agregar.</div></div>';
 
   document.getElementById('n-gen').textContent=fmt(tg,true);
-  document.getElementById('n-inv-tot').textContent=fmt(tinv,true);
+  document.getElementById('n-inv-tot').textContent=fmt(tr,true); // Cobrado total
+  // Saldo pendiente consolidado = utilidades generadas pendientes de cobro
   document.getElementById('n-saldo-pend').textContent=fmt(tPend,true);
 
   // CxC section
@@ -1173,54 +1172,79 @@ async function showNegDet(negId){
   var [uR,invR,gIndR]=await Promise.all([
     sb.from('utilidades').select('*').eq('negocio_id',negId).order('anio').order('mes'),
     sb.from('inversiones').select('*').eq('negocio_id',negId).order('fecha',{ascending:false}),
-    sb.from('gastos').select('*').eq('negocio_id',negId).order('fecha',{ascending:false}).limit(20)
+    sb.from('gastos').select('*').eq('negocio_id',negId).eq('tipo_asignacion','negocio').order('fecha',{ascending:false}).limit(20)
   ]);
   var utils=uR.data||[],invs=invR.data||[],gInd=gIndR.data||[];
   var totG=utils.reduce(function(s,u){return s+u.utilidad_generada},0);
   var totP=utils.reduce(function(s,u){return s+u.utilidad_pagada},0);
+  // Saldo pendiente por cobrar = utilidad generada - cobrada (concepto correcto)
+  var saldoPendCobrar=Math.max(totG-totP,0);
   var invAdicional=invs.reduce(function(s,i){return s+i.monto},0);
   var totInv=n.inversion_inicial+invAdicional;
-  var totGInd=gInd.reduce(function(s,g){return s+g.monto},0);
-  var saldo=Math.max(totInv-totP,0);
+  var totGInd=gInd.filter(function(g){return g.categoria_nombre!=='Inversión'}).reduce(function(s,g){return s+g.monto},0);
   var roi=totInv>0?((totG/totInv)*100).toFixed(1):0;
-  var flujoNeto=totP-totInv;
 
   var body='';
-  // KPIs mini dashboard
-  body+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px">';
-  [{l:'Invertido',v:fmt(totInv,true),c:'c-purple'},{l:'Generado',v:fmt(totG,true),c:'c-blue'},{l:'Recibido',v:fmt(totP,true),c:'c-green'},
-   {l:'Saldo pend.',v:fmt(saldo,true),c:'c-amber'},{l:'ROI',v:roi+'%',c:parseFloat(roi)>0?'c-green':'c-red'},{l:'Flujo neto',v:fmt(flujoNeto,true),c:flujoNeto>=0?'c-green':'c-red'}
-  ].forEach(function(k){
-    body+='<div style="background:var(--surface2);border-radius:8px;padding:9px;text-align:center"><div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px">'+k.l+'</div><div style="font-size:13px;font-weight:700" class="'+k.c+'">'+k.v+'</div></div>';
-  });
+
+  // ── JERARQUÍA CORRECTA: 1.Generado 2.Mi participación 3.Cobrado 4.Saldo pend. cobrar 5.Inversión (2do nivel)
+  body+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px">';
+  // Fila 1: lo más importante
+  body+='<div style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:9px;color:#60A5FA;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px">Utilidad generada</div><div style="font-size:15px;font-weight:700;color:#60A5FA">'+fmt(totG,true)+'</div></div>';
+  body+='<div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:9px;color:#34D399;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px">Valor cobrado</div><div style="font-size:15px;font-weight:700;color:#34D399">'+fmt(totP,true)+'</div></div>';
+  // Fila 2: saldo pendiente (el más importante del día a día)
+  body+='<div style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:10px;text-align:center;grid-column:span 2"><div style="font-size:9px;color:#FBBF24;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px">⚡ Saldo pendiente por cobrar</div><div style="font-size:20px;font-weight:700;color:#FBBF24">'+fmt(saldoPendCobrar,true)+'</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Utilidad generada que aún no has retirado</div></div>';
   body+='</div>';
 
-  if(n.notas)body+='<div style="background:var(--surface2);border-radius:8px;padding:10px;font-size:11px;color:var(--text2);margin-bottom:12px">📝 '+n.notas+'</div>';
+  // Fila secundaria: participación, inversión, ROI
+  body+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px">';
+  body+='<div style="background:var(--surface2);border-radius:8px;padding:9px;text-align:center"><div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px">Participación</div><div style="font-size:14px;font-weight:700;color:var(--text2)">'+Math.round(n.porcentaje*100)+'%</div></div>';
+  body+='<div style="background:var(--surface2);border-radius:8px;padding:9px;text-align:center"><div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px">Total invertido</div><div style="font-size:14px;font-weight:700;color:#C4B5FD">'+fmt(totInv,true)+'</div></div>';
+  body+='<div style="background:var(--surface2);border-radius:8px;padding:9px;text-align:center"><div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px">ROI</div><div style="font-size:14px;font-weight:700;color:'+(parseFloat(roi)>0?'#34D399':'#F87171')+'">'+roi+'%</div></div>';
+  body+='</div>';
 
-  // Timeline movimientos (utilidades mes a mes)
+  if(n.notas)body+='<div style="background:var(--surface2);border-radius:8px;padding:10px;font-size:11px;color:var(--text2);margin-bottom:14px">📝 '+n.notas+'</div>';
+
+  // Utilidades mes a mes
   if(utils.length){
     body+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Utilidades mes a mes</div>';
-    body+='<div style="overflow-x:auto;margin-bottom:14px"><table class="mes-table"><thead><tr><th>Mes</th><th>Generado</th><th>Pagado</th><th>Retenido</th><th></th></tr></thead><tbody>';
+    body+='<div style="overflow-x:auto;margin-bottom:14px"><table class="mes-table"><thead><tr><th>Mes</th><th>Generado</th><th>Cobrado</th><th>Pend.</th><th></th></tr></thead><tbody>';
     utils.sort(function(a,b){return(b.anio*12+MESES.indexOf(b.mes))-(a.anio*12+MESES.indexOf(a.mes))}).forEach(function(u){
       var ret=u.utilidad_generada-u.utilidad_pagada;
-      body+='<tr><td>'+u.mes.substr(0,3)+' '+u.anio+'</td><td class="c-blue">'+fmt(u.utilidad_generada,true)+'</td><td class="c-green">'+fmt(u.utilidad_pagada,true)+'</td><td class="'+(ret>0?'c-amber':'c-green')+'">'+fmt(ret,true)+'</td><td><button onclick="askDelUtil(\''+u.id+'\')" style="background:rgba(239,68,68,.15);border:none;border-radius:5px;padding:2px 6px;color:#F87171;font-size:9px;cursor:pointer">✕</button></td></tr>';
+      body+='<tr><td>'+u.mes.substr(0,3)+' '+u.anio+'</td><td class="c-blue">'+fmt(u.utilidad_generada,true)+'</td><td class="c-green">'+fmt(u.utilidad_pagada,true)+'</td><td class="'+(ret>0?'c-amber':'c-green')+'">'+fmt(ret,true)+'</td>';
+      body+='<td><button onclick="askDelUtil(\''+u.id+'\')" style="background:rgba(239,68,68,.15);border:none;border-radius:5px;padding:2px 6px;color:#F87171;font-size:9px;cursor:pointer">✕</button></td></tr>';
     });
     var totRet=totG-totP;
     body+='<tr style="border-top:1px solid rgba(255,255,255,.15)"><td style="font-weight:700">Total</td><td class="c-blue" style="font-weight:700">'+fmt(totG,true)+'</td><td class="c-green" style="font-weight:700">'+fmt(totP,true)+'</td><td class="c-amber" style="font-weight:700">'+fmt(totRet,true)+'</td><td></td></tr>';
     body+='</tbody></table></div>';
   }
 
-  // Inversiones
-  if(invs.length){
-    body+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Inversiones adicionales ('+fmt(invAdicional,true)+')</div>';
-    body+=invs.map(function(i){return'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:12px;font-weight:600">'+i.tipo_inversion+'</div><div style="font-size:10px;color:var(--text3)">'+fmtD(i.fecha)+' · '+(i.descripcion||'')+'</div></div><div style="font-size:13px;font-weight:700;color:#C4B5FD">'+fmt(i.monto,true)+'</div></div>'}).join('');
-    body+='<div style="padding-bottom:12px"></div>';
+  // Inversiones — con botón eliminar
+  body+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Inversiones ('+fmt(totInv,true)+')</div>';
+  if(n.inversion_inicial>0){
+    body+='<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);align-items:center"><div><div style="font-size:12px;font-weight:600">Inversión inicial</div><div style="font-size:10px;color:var(--text3)">Registrada en configuración del negocio</div></div><div style="font-size:13px;font-weight:700;color:#C4B5FD">'+fmt(n.inversion_inicial,true)+'</div></div>';
   }
+  if(invs.length){
+    body+=invs.map(function(i){
+      return'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);align-items:center">'+
+      '<div><div style="font-size:12px;font-weight:600">'+i.tipo_inversion+'</div><div style="font-size:10px;color:var(--text3)">'+fmtD(i.fecha)+' · '+(i.descripcion||'')+'</div></div>'+
+      '<div style="display:flex;align-items:center;gap:8px">'+
+      '<div style="font-size:13px;font-weight:700;color:#C4B5FD">'+fmt(i.monto,true)+'</div>'+
+      '<button onclick="askDelInversion(\''+i.id+'\','+i.monto+')" style="background:rgba(239,68,68,.15);border:none;border-radius:6px;padding:3px 7px;color:#F87171;font-size:10px;font-weight:700;cursor:pointer">✕</button>'+
+      '</div></div>';
+    }).join('');
+  }
+  if(!invs.length&&!n.inversion_inicial){
+    body+='<div style="color:var(--text3);font-size:12px;padding:8px 0">Sin inversiones adicionales registradas.</div>';
+  }
+  body+='<div style="padding-bottom:10px"></div>';
 
-  // Gastos indirectos
-  if(gInd.length){
+  // Gastos indirectos (excluir los tipo Inversión)
+  if(totGInd>0){
     body+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Gastos indirectos ('+fmt(totGInd,true)+')</div>';
-    body+=gInd.map(function(g){var cat=S.cats.find(function(c){return c.id===g.categoria_id})||{emoji:'📦'};return'<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:12px;font-weight:600">'+cat.emoji+' '+(g.descripcion||g.categoria_nombre||'—')+'</div><div style="font-size:10px;color:var(--text3)">'+fmtD(g.fecha)+' · '+g.categoria_nombre+'</div></div><div style="font-size:12px;font-weight:700;color:#F87171">'+fmt(g.monto,true)+'</div></div>'}).join('');
+    body+=gInd.filter(function(g){return g.categoria_nombre!=='Inversión'}).map(function(g){
+      var cat=S.cats.find(function(c){return c.id===g.categoria_id})||{emoji:'📦'};
+      return'<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:12px;font-weight:600">'+cat.emoji+' '+(g.descripcion||g.categoria_nombre||'—')+'</div><div style="font-size:10px;color:var(--text3)">'+fmtD(g.fecha)+' · '+g.categoria_nombre+'</div></div><div style="font-size:12px;font-weight:700;color:#F87171">'+fmt(g.monto,true)+'</div></div>';
+    }).join('');
   }
 
   document.getElementById('modal-neg-det-body').innerHTML=body;
@@ -1239,6 +1263,25 @@ async function askDelUtil(id){
       }
     }
     toast('Eliminado','amber');renderNegocios();
+    if(S.negDetId)showNegDet(S.negDetId);
+  });
+}
+
+async function askDelInversion(invId,monto){
+  showAlert('Eliminar inversión','¿Eliminar esta inversión? Se eliminará también el gasto asociado de caja.',async function(){
+    // Buscar y eliminar el gasto asociado (registrado como salida de caja)
+    var invRes=await sb.from('inversiones').select('*').eq('id',invId).single();
+    if(invRes.data){
+      var inv=invRes.data;
+      // Eliminar gasto de caja asociado (buscar por descripción y fecha)
+      var gastoRes=await sb.from('gastos').select('id').eq('fecha',inv.fecha).eq('monto',inv.monto).eq('categoria_nombre','Inversión').eq('negocio_id',inv.negocio_id);
+      if(gastoRes.data&&gastoRes.data.length>0){
+        await sb.from('gastos').delete().eq('id',gastoRes.data[0].id);
+      }
+    }
+    await sb.from('inversiones').delete().eq('id',invId);
+    toast('Inversión eliminada · Caja corregida','amber');
+    renderNegocios();renderDash();
     if(S.negDetId)showNegDet(S.negDetId);
   });
 }
